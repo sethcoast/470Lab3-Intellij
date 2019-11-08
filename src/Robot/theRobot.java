@@ -278,10 +278,11 @@ public class theRobot extends JFrame {
     State[][] validStateGrid;
     // probability matrices
     // These map (given state, compute state) to their probabilities
-    double[][] stateTransitionLeft;
-    double[][] stateTransitionRight;
-    double[][] stateTransitionUp;
-    double[][] stateTransitionDown;
+    double[][] stateTransitionWest;
+    double[][] stateTransitionEast;
+    double[][] stateTransitionNorth;
+    double[][] stateTransitionSouth;
+    double[][] stateTransitionStay;
     double[][] measurementProbabilityMatrix;
 
     double[][] msmtProbability;
@@ -434,7 +435,7 @@ public class theRobot extends JFrame {
             int x = states.get(i).x;
             int y = states.get(i).y;
             // left state transition
-            double selfProb = missProb;
+            double selfProb = action == STAY ? moveProb : missProb;;
             // prob of visiting left state given self and action
             double prob = action == WEST ? moveProb : missProb;
             if (isValidState(x-1, y)) {
@@ -595,22 +596,22 @@ public class theRobot extends JFrame {
             {
                 if (action == NORTH)
                 {
-                    double temp = (stateTransitionUp[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    double temp = (stateTransitionNorth[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
                 else if (action == SOUTH)
                 {
-                    double temp = (stateTransitionDown[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    double temp = (stateTransitionSouth[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
                 else if (action == EAST)
                 {
-                    double temp = (stateTransitionRight[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    double temp = (stateTransitionEast[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
                 else if (action == WEST)
                 {
-                    double temp = (stateTransitionLeft[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    double temp = (stateTransitionWest[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
                 /*
@@ -660,10 +661,11 @@ public class theRobot extends JFrame {
         //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
         // initialize state transition probabilities matrices
-        stateTransitionLeft = initStateTransitionMatrix(WEST);
-        stateTransitionRight = initStateTransitionMatrix(EAST);
-        stateTransitionUp = initStateTransitionMatrix(NORTH);
-        stateTransitionDown = initStateTransitionMatrix(SOUTH);
+        stateTransitionWest = initStateTransitionMatrix(WEST);
+        stateTransitionEast = initStateTransitionMatrix(EAST);
+        stateTransitionNorth = initStateTransitionMatrix(NORTH);
+        stateTransitionSouth = initStateTransitionMatrix(SOUTH);
+        stateTransitionStay = initStateTransitionMatrix(STAY);
 
         // initialize measurement probability
         initMsmtProbabilityMatrix();
