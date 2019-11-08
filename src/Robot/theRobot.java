@@ -1,16 +1,17 @@
 package Robot;
-import javax.swing.*;
 import java.awt.event.*;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.lang.*;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import java.io.*;
-import java.util.Random;
-import java.util.Scanner;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import javafx.util.Pair;
 
 
 // This class draws the probability map and value iteration map that you create to the window
@@ -130,8 +131,8 @@ class mySmartMap extends JComponent implements KeyListener {
             }
         }
         for (int x = 0; x < mundo.width; x++) {
-                g.setColor(gris);
-                g.drawLine((int)(x * sqrWdth), 0, (int)(x * sqrWdth), (int)winHeight);
+            g.setColor(gris);
+            g.drawLine((int)(x * sqrWdth), 0, (int)(x * sqrWdth), (int)winHeight);
         }
 
         //System.out.println("repaint maxProb: " + maxProbs + "; " + mx + ", " + my);
@@ -201,8 +202,8 @@ class mySmartMap extends JComponent implements KeyListener {
             }
         }
         for (int x = 0; x < mundo.width; x++) {
-                g.setColor(gris);
-                g.drawLine((int)(x * sqrWdth)+offset, 0, (int)(x * sqrWdth)+offset, (int)winHeight);
+            g.setColor(gris);
+            g.drawLine((int)(x * sqrWdth)+offset, 0, (int)(x * sqrWdth)+offset, (int)winHeight);
         }
     }
 
@@ -254,12 +255,12 @@ public class theRobot extends JFrame {
 
     World mundo; // mundo contains all the information about the world.  See World.java
     double moveProb, sensorAccuracy;  // stores probabilies that the robot moves in the intended direction
-                                      // and the probability that a sonar reading is correct, respectively
+    // and the probability that a sonar reading is correct, respectively
 
     // variables to communicate with the Server via sockets
     public Socket s;
-	public BufferedReader sin;
-	public PrintWriter sout;
+    public BufferedReader sin;
+    public PrintWriter sout;
 
     // variables to store information entered through the command-line about the current scenario
     boolean isManual = false; // determines whether you (manual) or the AI (automatic) controls the robots movements
@@ -273,7 +274,21 @@ public class theRobot extends JFrame {
     // store your computed value of being in each state (x, y)
     double[][] Vs;
 
+    // used as indices in computing probability matrices
+    private List<State> states;
+    // used for look up in computing probability matrices
+    State[][] validStateGrid;
+    // probability matrices
+    // These map (given state, compute state) to their probabilities
+    double[][] stateTransitionLeft;
+    HashMap<Pair<State,State>, Integer> stateTransitionRight;
+    HashMap<Pair<State,State>, Integer> stateTransitionUp;
+    HashMap<Pair<State,State>, Integer> stateTransitionDown;
+
+    double[][] msmtProbability;
+
     public theRobot(String _manual, int _decisionDelay) {
+        states = new ArrayList<>();
         // initialize variables as specified from the command-line
         if (_manual.equals("automatic"))
             isManual = false;
@@ -314,9 +329,9 @@ public class theRobot extends JFrame {
         String host = "localhost";
 
         try {
-			s = new Socket(host, portNumber);
+            s = new Socket(host, portNumber);
             sout = new PrintWriter(s.getOutputStream(), true);
-			sin = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            sin = new BufferedReader(new InputStreamReader(s.getInputStream()));
 
             mundoName = sin.readLine();
             moveProb = Double.parseDouble(sin.readLine());
@@ -369,6 +384,8 @@ public class theRobot extends JFrame {
     void initializeProbabilities() {
         probs = new double[mundo.width][mundo.height];
         Vs = new double[mundo.width][mundo.height];
+        validStateGrid = new State[mundo.height][mundo.width];
+
         // if the robot's initial position is known, reflect that in the probability map
         if (knownPosition) {
             for (int y = 0; y < mundo.height; y++) {
@@ -385,8 +402,16 @@ public class theRobot extends JFrame {
 
             for (int y = 0; y < mundo.height; y++) {
                 for (int x = 0; x < mundo.width; x++) {
-                    if (mundo.grid[x][y] == 0)
+                    if (mundo.grid[x][y] == 0) {
                         count++;
+                        State newState = new State(x, y);
+                        states.add(newState);
+                        validStateGrid[x][y] = newState;
+                    } else if (mundo.grid[x][y] == 3) {
+                        State newState = new State(x, y);
+                        states.add(newState);
+                        validStateGrid[x][y] = newState;
+                    }
                 }
             }
 
@@ -402,7 +427,62 @@ public class theRobot extends JFrame {
 
         myMaps.updateProbs(probs);
     }
-      // TODO: update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
+
+    private void initStateTransitionMatrixProbs() {
+        stateTransitionLeft = new double[states.size()][states.size()];
+        double missProb = (1-moveProb)/4;
+        for (int i = 0; i < states.size(); i++) {
+            int x = states.get(i).x;
+            int y = states.get(i).y;
+            // left state transition
+            double selfProb = missProb;
+            // prob of visiting left state given self and left
+            if (isValidState(x-1, y)) {
+                stateTransitionLeft[i][states.indexOf(validStateGrid[x-1][y])] = moveProb;
+            } else if (isWall(x-1, y)) {
+                selfProb += moveProb;
+            }
+            // prob of visiting right state given self and left
+            if (isValidState(x+1, y)) {
+                stateTransitionLeft[i][states.indexOf(validStateGrid[x+1][y])] = missProb;
+            } else if (isWall(x+1, y)) {
+                selfProb += missProb;
+            }
+            // prob of visiting up state given self and left
+            if (isValidState(x, y-1)) {
+                stateTransitionLeft[i][states.indexOf(validStateGrid[x][y-1])] = missProb;
+            } else if (isWall(x, y-1)) {
+                selfProb += missProb;
+            }
+            // prob of visiting up state given self and left
+            if (isValidState(x, y+1)) {
+                int i1 = states.indexOf(validStateGrid[x][y+1]);
+                if (i1 > states.size() || i1 < 0) {
+                    System.out.println("bad");
+                }
+                stateTransitionLeft[i][i1] = missProb;
+            } else if (isWall(x, y+1)) {
+                selfProb += missProb;
+            }
+            stateTransitionLeft[i][i] = selfProb;
+
+
+        }
+
+        System.out.println("Hello");
+
+    }
+
+    boolean isValidState(int x, int y) {
+        return mundo.grid[x][y] == 0 || mundo.grid[x][y] == 3;
+    }
+
+    boolean isWall(int x, int y) {
+        return mundo.grid[x][y] == 1;
+    }
+
+
+    // TODO: update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
     //       To do this, you should update the 2D-array "probs"
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
@@ -410,7 +490,7 @@ public class theRobot extends JFrame {
         // your code
 
         myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
-                                   //  new probabilities will show up in the probability map on the GUI
+        //  new probabilities will show up in the probability map on the GUI
     }
 
 
@@ -427,6 +507,14 @@ public class theRobot extends JFrame {
 
         //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
+        // initialize state transition probabilities matrices
+        initStateTransitionMatrixProbs();
+//        initStateTransitionMatrixRight();
+//        initStateTransitionMatrixUp();
+//        initStateTransitionMatrixDown();
+//
+//        // initialize measurement probability
+//        initMsmtProbabilityMatrix();
 
         while (true) {
             try {
@@ -434,7 +522,7 @@ public class theRobot extends JFrame {
                     action = getHumanAction();  // get the action selected by the user (from the keyboard)
                 else
                     action = automaticAction(); // TODO: get the action selected by your AI;
-                                                // you'll need to write this function for part III
+                // you'll need to write this function for part III
 
                 sout.println(action); // send the action to the Server
 
@@ -462,7 +550,7 @@ public class theRobot extends JFrame {
                     // was not at the goal or in a stairwell
                 }
                 Thread.sleep(decisionDelay);  // delay that is useful to see what is happening when the AI selects actions
-                                              // decisionDelay is specified by the send command-line argument, which is given in milliseconds
+                // decisionDelay is specified by the send command-line argument, which is given in milliseconds
             }
             catch (IOException e) {
                 System.out.println(e);
@@ -476,5 +564,25 @@ public class theRobot extends JFrame {
     // java theRobot [manual/automatic] [delay]
     public static void main(String[] args) {
         theRobot robot = new theRobot(args[0], Integer.parseInt(args[1]));  // starts up the robot
+    }
+
+    class State {
+        int x;
+        int y;
+        State neighborUp;
+        State neighborDown;
+        State neighborLeft;
+        State neighborRight;
+
+        State(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            State state = (State) obj;
+            return obj.getClass() == State.class && this.x == state.x && this.y == state.y;
+        }
     }
 }
