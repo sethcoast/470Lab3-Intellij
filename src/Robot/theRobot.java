@@ -281,6 +281,8 @@ public class theRobot extends JFrame {
     // probability matrices
     // These map (given state, compute state) to their probabilities
     double[][] stateTransitionLeft;
+    double[][] measurementProbabilityMatrix;
+
     HashMap<Pair<State,State>, Integer> stateTransitionRight;
     HashMap<Pair<State,State>, Integer> stateTransitionUp;
     HashMap<Pair<State,State>, Integer> stateTransitionDown;
@@ -428,7 +430,136 @@ public class theRobot extends JFrame {
         myMaps.updateProbs(probs);
     }
 
-    private void initStateTransitionMatrixProbs() {
+    private void initMsmtProbabilityMatrix()
+    {
+        //Treat order of measurements as Up, Down, Left, Right
+        String[] measurementPossibilities = {"0000","0001","0010","0100","1000","1100","1010","1001","0110","0101","0011","0111","1011","1101","1110","1111"};
+        measurementProbabilityMatrix = new double[states.size()][16];
+        double correctMeasurement = sensorAccuracy;
+        double incorrectMeasurement = (1-sensorAccuracy);
+        for(int i =0; i < states.size(); i++)
+        {
+            //Loop through every state
+            int x = states.get(i).x;
+            int y = states.get(i).y;
+            //Loop through every possible measurement
+            for(int j=0; j<16; j++)
+            {
+                String possibleMeasurement = measurementPossibilities[j];
+                double probabilityIJ = 0;
+                //Up
+                if (isWall(x, y-1))
+                {
+                    if (possibleMeasurement.charAt(0) == '1')
+                    {
+                        probabilityIJ += correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ += incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(0) == '0')
+                    {
+                        probabilityIJ += correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ += incorrectMeasurement;
+                    }
+                }
+                //Down
+                if (isWall(x, y+1))
+                {
+                    if (possibleMeasurement.charAt(1) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(1) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Left
+                if (isWall(x-1, y))
+                {
+                    if (possibleMeasurement.charAt(2) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(2) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Right
+                if (isWall(x+1, y))
+                {
+                    if (possibleMeasurement.charAt(3) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(3) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+
+                //Add probability of I, Jth entry to probability matrix
+                measurementProbabilityMatrix[i][j] = probabilityIJ;
+            }
+        }
+
+        /*
+        System.out.println("Measurement Probability Matrix: ");
+        for (int i=0; i<states.size(); i++)
+        {
+            for (int j=0; j<16; j++){
+                System.out.print(measurementProbabilityMatrix[i][j]);
+                System.out.print(",");
+            }
+            System.out.print("\n");
+        }
+         */
+    }
+
+    private void initStateTransitionMatrixProbs()
+    {
         stateTransitionLeft = new double[states.size()][states.size()];
         double missProb = (1-moveProb)/4;
         for (int i = 0; i < states.size(); i++) {
@@ -457,9 +588,11 @@ public class theRobot extends JFrame {
             // prob of visiting up state given self and left
             if (isValidState(x, y+1)) {
                 int i1 = states.indexOf(validStateGrid[x][y+1]);
+                ///for debugging
                 if (i1 > states.size() || i1 < 0) {
                     System.out.println("bad");
                 }
+                ///end for debugging
                 stateTransitionLeft[i][i1] = missProb;
             } else if (isWall(x, y+1)) {
                 selfProb += missProb;
@@ -509,12 +642,12 @@ public class theRobot extends JFrame {
         initializeProbabilities();  // Initializes the location (probability) map
         // initialize state transition probabilities matrices
         initStateTransitionMatrixProbs();
+        initMsmtProbabilityMatrix();
 //        initStateTransitionMatrixRight();
 //        initStateTransitionMatrixUp();
 //        initStateTransitionMatrixDown();
 //
-//        // initialize measurement probability
-//        initMsmtProbabilityMatrix();
+
 
         while (true) {
             try {
@@ -528,6 +661,7 @@ public class theRobot extends JFrame {
 
                 // get sonar readings after the robot moves
                 String sonars = sin.readLine();
+                System.out.println(sonars);
                 //System.out.println("Sonars: " + sonars);
 
                 updateProbabilities(action, sonars); // TODO: this function should update the probabilities of where the AI thinks it is
