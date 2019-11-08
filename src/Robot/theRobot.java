@@ -281,6 +281,7 @@ public class theRobot extends JFrame {
     double[][] stateTransitionRight;
     double[][] stateTransitionUp;
     double[][] stateTransitionDown;
+    double[][] measurementProbabilityMatrix;
 
     double[][] msmtProbability;
 
@@ -466,6 +467,132 @@ public class theRobot extends JFrame {
         return transitionMatrix;
     }
 
+    private void initMsmtProbabilityMatrix()
+    {
+        //Treat order of measurements as Up, Down, Left, Right
+        String[] measurementPossibilities = {"0000","0001","0010","0100","1000","1100","1010","1001","0110","0101","0011","0111","1011","1101","1110","1111"};
+        measurementProbabilityMatrix = new double[states.size()][16];
+        double correctMeasurement = sensorAccuracy;
+        double incorrectMeasurement = (1-sensorAccuracy);
+        for(int i =0; i < states.size(); i++)
+        {
+            //Loop through every state
+            int x = states.get(i).x;
+            int y = states.get(i).y;
+            //Loop through every possible measurement
+            for(int j=0; j<16; j++)
+            {
+                String possibleMeasurement = measurementPossibilities[j];
+                double probabilityIJ = 0;
+                //Up
+                if (isWall(x, y-1))
+                {
+                    if (possibleMeasurement.charAt(0) == '1')
+                    {
+                        probabilityIJ += correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ += incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(0) == '0')
+                    {
+                        probabilityIJ += correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ += incorrectMeasurement;
+                    }
+                }
+                //Down
+                if (isWall(x, y+1))
+                {
+                    if (possibleMeasurement.charAt(1) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(1) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Left
+                if (isWall(x-1, y))
+                {
+                    if (possibleMeasurement.charAt(2) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(2) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Right
+                if (isWall(x+1, y))
+                {
+                    if (possibleMeasurement.charAt(3) == '1')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else
+                {
+                    if (possibleMeasurement.charAt(3) == '0')
+                    {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else
+                    {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Add probability of I, Jth entry to probability matrix
+                measurementProbabilityMatrix[i][j] = probabilityIJ;
+            }
+        }
+        /*
+        System.out.println("Measurement Probability Matrix: ");
+        for (int i=0; i<states.size(); i++)
+        {
+            for (int j=0; j<16; j++){
+                System.out.print(measurementProbabilityMatrix[i][j]);
+                System.out.print(",");
+            }
+            System.out.print("\n");
+        }
+         */
+    }
+
 
     boolean isValidState(int x, int y) {
         return mundo.grid[x][y] == 0 || mundo.grid[x][y] == 3;
@@ -506,9 +633,9 @@ public class theRobot extends JFrame {
         stateTransitionRight = initStateTransitionMatrix(Action.right);
         stateTransitionUp = initStateTransitionMatrix(Action.up);
         stateTransitionDown = initStateTransitionMatrix(Action.down);
-//
-//        // initialize measurement probability
-//        initMsmtProbabilityMatrix();
+
+        // initialize measurement probability
+        initMsmtProbabilityMatrix();
 
         while (true) {
             try {
