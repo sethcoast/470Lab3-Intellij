@@ -425,153 +425,47 @@ public class theRobot extends JFrame {
         myMaps.updateProbs(probs);
     }
 
-    private void initStateTransitionMatrixLeft() {
-        stateTransitionLeft = new double[states.size()][states.size()];
+    private double[][] initStateTransitionMatrix(Action action) {
+        double[][] transitionMatrix = new double[states.size()][states.size()];
         double missProb = (1-moveProb)/4;
         for (int i = 0; i < states.size(); i++) {
             int x = states.get(i).x;
             int y = states.get(i).y;
             // left state transition
             double selfProb = missProb;
-            // prob of visiting left state given self and left
+            // prob of visiting left state given self and action
+            double prob = action == Action.left ? moveProb : missProb;
             if (isValidState(x-1, y)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x-1][y])] = moveProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x-1][y])] = prob;
             } else if (isWall(x-1, y)) {
-                selfProb += moveProb;
+                selfProb += prob;
             }
-            // prob of visiting right state given self and left
+            // prob of visiting right state given self and action
+            prob = action == Action.right ? moveProb : missProb;
             if (isValidState(x+1, y)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x+1][y])] = missProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x+1][y])] = prob;
             } else if (isWall(x+1, y)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            // prob of visiting up state given self and left
+            // prob of visiting up state given self and action
+            prob = action == Action.up ? moveProb : missProb;
             if (isValidState(x, y-1)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x][y-1])] = missProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x][y-1])] = prob;
             } else if (isWall(x, y-1)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            // prob of visiting up state given self and left
+            // prob of visiting down state given self and action
+            prob = action == Action.down ? moveProb : missProb;
             if (isValidState(x, y+1)) {
-                int i1 = states.indexOf(validStateGrid[x][y+1]);
-                stateTransitionLeft[i][i1] = missProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x][y+1])] = prob;
             } else if (isWall(x, y+1)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            stateTransitionLeft[i][i] = selfProb;
+            transitionMatrix[i][i] = selfProb;
         }
+        return transitionMatrix;
     }
 
-    private void initStateTransitionMatrixRight() {
-        stateTransitionRight = new double[states.size()][states.size()];
-        double missProb = (1-moveProb)/4;
-        for (int i = 0; i < states.size(); i++) {
-            int x = states.get(i).x;
-            int y = states.get(i).y;
-            // Right state transition
-            double selfProb = missProb;
-            // prob of visiting left state given self and right
-            if (isValidState(x-1, y)) {
-                stateTransitionRight[i][states.indexOf(validStateGrid[x-1][y])] = missProb;
-            } else if (isWall(x-1, y)) {
-                selfProb += missProb;
-            }
-            // prob of visiting right state given self and right
-            if (isValidState(x+1, y)) {
-                stateTransitionRight[i][states.indexOf(validStateGrid[x+1][y])] = moveProb;
-            } else if (isWall(x+1, y)) {
-                selfProb += moveProb;
-            }
-            // prob of visiting up state given self and right
-            if (isValidState(x, y-1)) {
-                stateTransitionRight[i][states.indexOf(validStateGrid[x][y-1])] = missProb;
-            } else if (isWall(x, y-1)) {
-                selfProb += missProb;
-            }
-            // prob of visiting down state given self and right
-            if (isValidState(x, y+1)) {
-                int i1 = states.indexOf(validStateGrid[x][y+1]);
-                stateTransitionRight[i][i1] = missProb;
-            } else if (isWall(x, y+1)) {
-                selfProb += missProb;
-            }
-            stateTransitionRight[i][i] = selfProb;
-        }
-    }
-
-    private void initStateTransitionMatrixUp() {
-        stateTransitionUp = new double[states.size()][states.size()];
-        double missProb = (1-moveProb)/4;
-        for (int i = 0; i < states.size(); i++) {
-            int x = states.get(i).x;
-            int y = states.get(i).y;
-            // Up state transition
-            double selfProb = missProb;
-            // prob of visiting left state given self and up
-            if (isValidState(x-1, y)) {
-                stateTransitionUp[i][states.indexOf(validStateGrid[x-1][y])] = missProb;
-            } else if (isWall(x-1, y)) {
-                selfProb += missProb;
-            }
-            // prob of visiting right state given self and up
-            if (isValidState(x+1, y)) {
-                stateTransitionUp[i][states.indexOf(validStateGrid[x+1][y])] = missProb;
-            } else if (isWall(x+1, y)) {
-                selfProb += missProb;
-            }
-            // prob of visiting up state given self and up
-            if (isValidState(x, y-1)) {
-                stateTransitionUp[i][states.indexOf(validStateGrid[x][y-1])] = moveProb;
-            } else if (isWall(x, y-1)) {
-                selfProb += moveProb;
-            }
-            // prob of visiting down state given self and up
-            if (isValidState(x, y+1)) {
-                int i1 = states.indexOf(validStateGrid[x][y+1]);
-                stateTransitionUp[i][i1] = missProb;
-            } else if (isWall(x, y+1)) {
-                selfProb += missProb;
-            }
-            stateTransitionUp[i][i] = selfProb;
-        }
-    }
-
-    private void initStateTransitionMatrixDown() {
-        stateTransitionDown = new double[states.size()][states.size()];
-        double missProb = (1-moveProb)/4;
-        for (int i = 0; i < states.size(); i++) {
-            int x = states.get(i).x;
-            int y = states.get(i).y;
-            // Down state transition
-            double selfProb = missProb;
-            // prob of visiting left state given self and down
-            if (isValidState(x-1, y)) {
-                stateTransitionDown[i][states.indexOf(validStateGrid[x-1][y])] = missProb;
-            } else if (isWall(x-1, y)) {
-                selfProb += missProb;
-            }
-            // prob of visiting right state given self and down
-            if (isValidState(x+1, y)) {
-                stateTransitionDown[i][states.indexOf(validStateGrid[x+1][y])] = missProb;
-            } else if (isWall(x+1, y)) {
-                selfProb += missProb;
-            }
-            // prob of visiting up state given self and down
-            if (isValidState(x, y-1)) {
-                stateTransitionDown[i][states.indexOf(validStateGrid[x][y-1])] = missProb;
-            } else if (isWall(x, y-1)) {
-                selfProb += missProb;
-            }
-            // prob of visiting down state given self and down
-            if (isValidState(x, y+1)) {
-                int i1 = states.indexOf(validStateGrid[x][y+1]);
-                stateTransitionDown[i][i1] = moveProb;
-            } else if (isWall(x, y+1)) {
-                selfProb += moveProb;
-            }
-            stateTransitionDown[i][i] = selfProb;
-        }
-    }
 
     boolean isValidState(int x, int y) {
         return mundo.grid[x][y] == 0 || mundo.grid[x][y] == 3;
@@ -608,10 +502,10 @@ public class theRobot extends JFrame {
         //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
         // initialize state transition probabilities matrices
-        initStateTransitionMatrixLeft();
-        initStateTransitionMatrixRight();
-        initStateTransitionMatrixUp();
-        initStateTransitionMatrixDown();
+        stateTransitionLeft = initStateTransitionMatrix(Action.left);
+        stateTransitionRight = initStateTransitionMatrix(Action.right);
+        stateTransitionUp = initStateTransitionMatrix(Action.up);
+        stateTransitionDown = initStateTransitionMatrix(Action.down);
 //
 //        // initialize measurement probability
 //        initMsmtProbabilityMatrix();
@@ -664,6 +558,13 @@ public class theRobot extends JFrame {
     // java theRobot [manual/automatic] [delay]
     public static void main(String[] args) {
         theRobot robot = new theRobot(args[0], Integer.parseInt(args[1]));  // starts up the robot
+    }
+
+    enum Action {
+        left,
+        right,
+        up,
+        down
     }
 
     class State {
