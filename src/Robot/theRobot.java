@@ -8,10 +8,7 @@ import javax.swing.JFrame;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import javafx.util.Pair;
 
 
 // This class draws the probability map and value iteration map that you create to the window
@@ -281,11 +278,17 @@ public class theRobot extends JFrame {
     // probability matrices
     // These map (given state, compute state) to their probabilities
     double[][] stateTransitionLeft;
+<<<<<<< HEAD
     double[][] measurementProbabilityMatrix;
 
     HashMap<Pair<State,State>, Integer> stateTransitionRight;
     HashMap<Pair<State,State>, Integer> stateTransitionUp;
     HashMap<Pair<State,State>, Integer> stateTransitionDown;
+=======
+    double[][] stateTransitionRight;
+    double[][] stateTransitionUp;
+    double[][] stateTransitionDown;
+>>>>>>> 8f3ab2ec45925bbdca563e6c0749a0c671f57dd9
 
     double[][] msmtProbability;
 
@@ -430,6 +433,7 @@ public class theRobot extends JFrame {
         myMaps.updateProbs(probs);
     }
 
+<<<<<<< HEAD
     private void initMsmtProbabilityMatrix()
     {
         //Treat order of measurements as Up, Down, Left, Right
@@ -561,32 +565,41 @@ public class theRobot extends JFrame {
     private void initStateTransitionMatrixProbs()
     {
         stateTransitionLeft = new double[states.size()][states.size()];
+=======
+    private double[][] initStateTransitionMatrix(Action action) {
+        double[][] transitionMatrix = new double[states.size()][states.size()];
+>>>>>>> 8f3ab2ec45925bbdca563e6c0749a0c671f57dd9
         double missProb = (1-moveProb)/4;
         for (int i = 0; i < states.size(); i++) {
             int x = states.get(i).x;
             int y = states.get(i).y;
             // left state transition
             double selfProb = missProb;
-            // prob of visiting left state given self and left
+            // prob of visiting left state given self and action
+            double prob = action == Action.left ? moveProb : missProb;
             if (isValidState(x-1, y)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x-1][y])] = moveProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x-1][y])] = prob;
             } else if (isWall(x-1, y)) {
-                selfProb += moveProb;
+                selfProb += prob;
             }
-            // prob of visiting right state given self and left
+            // prob of visiting right state given self and action
+            prob = action == Action.right ? moveProb : missProb;
             if (isValidState(x+1, y)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x+1][y])] = missProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x+1][y])] = prob;
             } else if (isWall(x+1, y)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            // prob of visiting up state given self and left
+            // prob of visiting up state given self and action
+            prob = action == Action.up ? moveProb : missProb;
             if (isValidState(x, y-1)) {
-                stateTransitionLeft[i][states.indexOf(validStateGrid[x][y-1])] = missProb;
+                transitionMatrix[i][states.indexOf(validStateGrid[x][y-1])] = prob;
             } else if (isWall(x, y-1)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            // prob of visiting up state given self and left
+            // prob of visiting down state given self and action
+            prob = action == Action.down ? moveProb : missProb;
             if (isValidState(x, y+1)) {
+<<<<<<< HEAD
                 int i1 = states.indexOf(validStateGrid[x][y+1]);
                 ///for debugging
                 if (i1 > states.size() || i1 < 0) {
@@ -594,17 +607,17 @@ public class theRobot extends JFrame {
                 }
                 ///end for debugging
                 stateTransitionLeft[i][i1] = missProb;
+=======
+                transitionMatrix[i][states.indexOf(validStateGrid[x][y+1])] = prob;
+>>>>>>> 8f3ab2ec45925bbdca563e6c0749a0c671f57dd9
             } else if (isWall(x, y+1)) {
-                selfProb += missProb;
+                selfProb += prob;
             }
-            stateTransitionLeft[i][i] = selfProb;
-
-
+            transitionMatrix[i][i] = selfProb;
         }
-
-        System.out.println("Hello");
-
+        return transitionMatrix;
     }
+
 
     boolean isValidState(int x, int y) {
         return mundo.grid[x][y] == 0 || mundo.grid[x][y] == 3;
@@ -641,11 +654,18 @@ public class theRobot extends JFrame {
         //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
         // initialize state transition probabilities matrices
+<<<<<<< HEAD
         initStateTransitionMatrixProbs();
         initMsmtProbabilityMatrix();
 //        initStateTransitionMatrixRight();
 //        initStateTransitionMatrixUp();
 //        initStateTransitionMatrixDown();
+=======
+        stateTransitionLeft = initStateTransitionMatrix(Action.left);
+        stateTransitionRight = initStateTransitionMatrix(Action.right);
+        stateTransitionUp = initStateTransitionMatrix(Action.up);
+        stateTransitionDown = initStateTransitionMatrix(Action.down);
+>>>>>>> 8f3ab2ec45925bbdca563e6c0749a0c671f57dd9
 //
 
 
@@ -700,13 +720,16 @@ public class theRobot extends JFrame {
         theRobot robot = new theRobot(args[0], Integer.parseInt(args[1]));  // starts up the robot
     }
 
+    enum Action {
+        left,
+        right,
+        up,
+        down
+    }
+
     class State {
         int x;
         int y;
-        State neighborUp;
-        State neighborDown;
-        State neighborLeft;
-        State neighborRight;
 
         State(int x, int y) {
             this.x = x;
