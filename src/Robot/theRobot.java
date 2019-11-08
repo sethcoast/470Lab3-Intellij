@@ -517,23 +517,6 @@ public class theRobot extends JFrame {
                 }
                 //Left
                 if (isWall(x-1, y)) {
-                    if (possibleMeasurement.charAt(2) == '1') {
-                        probabilityIJ *= correctMeasurement;
-                    }
-                    else {
-                        probabilityIJ *= incorrectMeasurement;
-                    }
-                }
-                else {
-                    if (possibleMeasurement.charAt(2) == '0') {
-                        probabilityIJ *= correctMeasurement;
-                    }
-                    else {
-                        probabilityIJ *= incorrectMeasurement;
-                    }
-                }
-                //Right
-                if (isWall(x+1, y)) {
                     if (possibleMeasurement.charAt(3) == '1') {
                         probabilityIJ *= correctMeasurement;
                     }
@@ -543,6 +526,23 @@ public class theRobot extends JFrame {
                 }
                 else {
                     if (possibleMeasurement.charAt(3) == '0') {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                //Right
+                if (isWall(x+1, y)) {
+                    if (possibleMeasurement.charAt(2) == '1') {
+                        probabilityIJ *= correctMeasurement;
+                    }
+                    else {
+                        probabilityIJ *= incorrectMeasurement;
+                    }
+                }
+                else {
+                    if (possibleMeasurement.charAt(2) == '0') {
                         probabilityIJ *= correctMeasurement;
                     }
                     else {
