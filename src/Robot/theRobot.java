@@ -614,13 +614,11 @@ public class theRobot extends JFrame {
                     double temp = (stateTransitionWest[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
-                /*
                 else if (action == STAY)
                 {
                     double temp = (stateTransitionStay[_1][st])*probs[states.get(_1).x][states.get(_1).y];
                     belPrimeSt += temp;
                 }
-                 */
             }
             belPrime[states.get(st).x][states.get(st).y]= belPrimeSt;
 
