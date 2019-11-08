@@ -8,6 +8,7 @@ import javax.swing.JFrame;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -582,12 +583,69 @@ public class theRobot extends JFrame {
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
         // your code
+        String[] measurementPossibilities = {"0000","0001","0010","0100","1000","1100","1010","1001","0110","0101","0011","0111","1011","1101","1110","1111"};
+        List<String> measurementList = Arrays.asList(measurementPossibilities);
 
+        double[][] belPrime = new double[mundo.width][mundo.height];
+        double[][] newBels = new double[mundo.width][mundo.height];
+        for (int st = 0; st < states.size(); st++)
+        {
+            double belPrimeSt = 0;
+            for (int _1 = 0; _1 < states.size(); _1++)
+            {
+                if (action == NORTH)
+                {
+                    double temp = (stateTransitionUp[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    belPrimeSt += temp;
+                }
+                else if (action == SOUTH)
+                {
+                    double temp = (stateTransitionDown[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    belPrimeSt += temp;
+                }
+                else if (action == EAST)
+                {
+                    double temp = (stateTransitionRight[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    belPrimeSt += temp;
+                }
+                else if (action == WEST)
+                {
+                    double temp = (stateTransitionLeft[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    belPrimeSt += temp;
+                }
+                /*
+                else if (action == STAY)
+                {
+                    double temp = (stateTransitionStay[_1][st])*probs[states.get(_1).x][states.get(_1).y];
+                    belPrimeSt += temp;
+                }
+                 */
+            }
+            belPrime[states.get(st).x][states.get(st).y]= belPrimeSt;
+
+            int indexOfMeasurement = measurementList.indexOf(sonars);
+            double belSt = measurementProbabilityMatrix[st][indexOfMeasurement] * belPrimeSt;
+            newBels[states.get(st).x][states.get(st).y] = belSt;
+        }
+
+        double sumNewBels = 0;
+        for (int i =0; i < newBels.length; i++)
+        {
+            for (int j =0; j < newBels.length; j++)
+            {
+                sumNewBels += newBels[i][j];
+            }
+        }
+        for (int i =0; i < newBels.length; i++)
+        {
+            for (int j =0; j < newBels.length; j++)
+            {
+                probs[i][j] = newBels[i][j]/sumNewBels;
+            }
+        }
         myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
         //  new probabilities will show up in the probability map on the GUI
     }
-
-
 
     // This is the function you'd need to write to make the robot move using your AI;
     // You do NOT need to write this function for this lab; it can remain as is
