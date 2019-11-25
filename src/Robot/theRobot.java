@@ -623,8 +623,15 @@ public class theRobot extends JFrame {
             belPrime[states.get(st).x][states.get(st).y]= belPrimeSt;
 
             int indexOfMeasurement = measurementList.indexOf(sonars);
-            double belSt = measurementProbabilityMatrix[st][indexOfMeasurement] * belPrimeSt;
-            newBels[states.get(st).x][states.get(st).y] = belSt;
+            if(indexOfMeasurement != -1)
+            {
+                double belSt = measurementProbabilityMatrix[st][indexOfMeasurement] * belPrimeSt;
+                newBels[states.get(st).x][states.get(st).y] = belSt;
+            }
+            else
+            {
+                newBels[states.get(st).x][states.get(st).y] = 0;
+            }
         }
 
         double sumNewBels = 0;
