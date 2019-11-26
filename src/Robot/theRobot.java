@@ -389,7 +389,7 @@ public class theRobot extends JFrame {
     private void valueIteration() {
         double[][] new_utils = new double[mundo.width][mundo.height];
         double epsilon = 0.1;
-        double gamma = 0.95;
+        double gamma = 0.995;
         double delta;
 
         do {
@@ -769,12 +769,12 @@ public class theRobot extends JFrame {
         }
     }
 
-    private void intitializeRewards() {
+    private void initializeRewards() {
         rewards = new double[mundo.width][mundo.height];
         for (int y = 0; y < mundo.height; y++) {
             for (int x = 0; x < mundo.width; x++) {
                 if (mundo.grid[x][y] == 3) {
-                    rewards[x][y] = 100;
+                    rewards[x][y] = 600;
                 } else if (mundo.grid[x][y] == 0) {
                     rewards[x][y] = -1;
                 } else if (mundo.grid[x][y] == 2) {
@@ -810,7 +810,7 @@ public class theRobot extends JFrame {
         stateTransitionStay = initStateTransitionMatrix(STAY);
 
         // These 4 methods dictate decision policy
-        intitializeRewards();
+        initializeRewards();
         initializeUtilities();
 //        utilities = rewards.clone();
         valueIteration();  // TODO: function you will write in Part II of the lab
