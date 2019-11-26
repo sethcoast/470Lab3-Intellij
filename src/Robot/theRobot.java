@@ -10,6 +10,7 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 
 // This class draws the probability map and value iteration map that you create to the window
@@ -87,7 +88,7 @@ class mySmartMap extends JComponent implements KeyListener {
 
     public void paint(Graphics g) {
         paintProbs(g);
-        //paintValues(g);
+//        paintValues(g);
     }
 
     public void paintProbs(Graphics g) {
@@ -269,6 +270,11 @@ public class theRobot extends JFrame {
     // store your probability map (for position of the robot in this array
     double[][] probs;
 
+    double[][] utilities;
+    double[][] rewards;
+    double[][] max_utilities_after_action;
+    int[][] best_actions;
+
     // store your computed value of being in each state (x, y)
     double[][] Vs;
 
@@ -380,6 +386,68 @@ public class theRobot extends JFrame {
         return a;
     }
 
+    private void valueIteration() {
+        double[][] new_utils = new double[mundo.width][mundo.height];
+        double epsilon = 0.1;
+        double gamma = 0.95;
+        double delta;
+
+        do {
+            delta = 0;
+            // loop over all states
+            for (int y = 0; y < mundo.height; y++) {
+                for (int x = 0; x < mundo.width; x++) {
+                    if (isValidState(x,y)) {
+                        double max_a_utility = Double.NEGATIVE_INFINITY;
+                        // calculate the utility of each action, given the current state, and save the max
+                        for (int action = 0; action < 5; action++) {
+                            double a_utility = get_utility_for_action(x,y,action);
+                            if (a_utility > max_a_utility) {
+                                max_a_utility = a_utility;
+                            }
+                        }
+                        new_utils[x][y] = rewards[x][y] + gamma * max_a_utility;
+                        double diff = Math.abs(new_utils[x][y]-utilities[x][y]);
+                        if (diff > delta) {
+                            delta = diff;
+                        }
+                    } else {
+                        new_utils[x][y] = rewards[x][y];
+                    }
+                }
+            }
+            update_utilities(new_utils);
+            myMaps.updateValues(utilities);
+        } while (delta >= (epsilon*(1-gamma))/gamma);
+
+        System.out.println("value iteration done");
+    }
+
+    private void update_utilities(double[][] new_utils) {
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                utilities[x][y] = new_utils[x][y];
+            }
+        }
+    }
+
+    private double get_utility_for_action(int x, int y, int action) {
+        double missProb = (1-moveProb)/4;
+        double northProb = action == NORTH ? moveProb : missProb;
+        double southProb = action == SOUTH ? moveProb : missProb;
+        double eastProb = action == EAST ? moveProb : missProb;
+        double westProb = action == WEST ? moveProb : missProb;
+        double stayProb = action == STAY ? moveProb : missProb;
+
+        double utility = 0;
+        utility += northProb*utilities[x][y-1];
+        utility += southProb*utilities[x][y+1];
+        utility += stayProb*utilities[x][y];
+        utility += eastProb*utilities[x+1][y];
+        utility += westProb*utilities[x-1][y];
+        return utility;
+    }
+
     // initializes the probabilities of where the AI is
     void initializeProbabilities() {
         probs = new double[mundo.width][mundo.height];
@@ -394,6 +462,13 @@ public class theRobot extends JFrame {
                         probs[x][y] = 1.0;
                     else
                         probs[x][y] = 0.0;
+
+                    // create valid state matrix
+                    if (mundo.grid[x][y] == 0) {
+                        State newState = new State(x, y);
+                        states.add(newState);
+                        validStateGrid[x][y] = newState;
+                    }
                 }
             }
         }
@@ -404,10 +479,6 @@ public class theRobot extends JFrame {
                 for (int x = 0; x < mundo.width; x++) {
                     if (mundo.grid[x][y] == 0) {
                         count++;
-                        State newState = new State(x, y);
-                        states.add(newState);
-                        validStateGrid[x][y] = newState;
-                    } else if (mundo.grid[x][y] == 3) { // todo: consider removing this
                         State newState = new State(x, y);
                         states.add(newState);
                         validStateGrid[x][y] = newState;
@@ -570,7 +641,7 @@ public class theRobot extends JFrame {
 
 
     boolean isValidState(int x, int y) {
-        return mundo.grid[x][y] == 0 || mundo.grid[x][y] == 3;
+        return mundo.grid[x][y] == 0;
     }
 
     boolean isWall(int x, int y) {
@@ -656,14 +727,80 @@ public class theRobot extends JFrame {
     // This is the function you'd need to write to make the robot move using your AI;
     // You do NOT need to write this function for this lab; it can remain as is
     int automaticAction() {
+        // loop over all states, finding the state with the maximum (state utility * probability)
+        double max_util = Double.NEGATIVE_INFINITY;
+        int best_action = STAY;
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                if (isValidState(x, y)) {
+                    double max_util_from_state = max_utilities_after_action[x][y] * probs[x][y];
+                    if (max_util_from_state > max_util) {
+                        max_util = max_util_from_state;
+                        best_action = best_actions[x][y];
+                    }
+                }
+            }
+        }
 
-        return STAY;  // default action for now
+        return best_action;  // default action for now
+    }
+
+    private void initializeBestActionsAndMaxUtilities() {
+        max_utilities_after_action = new double[mundo.width][mundo.height];
+        best_actions = new int[mundo.width][mundo.height];
+        // loop over all states, computing "best action" and the utility of said action for each state
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                if (isValidState(x, y)) {
+                    double max_a_utility = 0;
+                    int best_action_for_state = -1;
+                    // calculate the utility of each action, given the current state, and save the max
+                    for (int action = 0; action < 5; action++) {
+                        double a_utility = get_utility_for_action(x, y, action);
+                        if (a_utility > max_a_utility) {
+                            max_a_utility = a_utility;
+                            best_action_for_state = action;
+                        }
+                    }
+                    best_actions[x][y] = best_action_for_state;
+                    max_utilities_after_action[x][y] = max_a_utility;
+                }
+            }
+        }
+    }
+
+    private void intitializeRewards() {
+        rewards = new double[mundo.width][mundo.height];
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                if (mundo.grid[x][y] == 3) {
+                    rewards[x][y] = 100;
+                } else if (mundo.grid[x][y] == 0) {
+                    rewards[x][y] = -1;
+                } else if (mundo.grid[x][y] == 2) {
+                    rewards[x][y] = -10;
+                }
+            }
+        }
+    }
+
+    void initializeUtilities()
+    {
+        utilities = new double[mundo.width][mundo.height];
+        for(int i =0; i < mundo.width; i++)
+        {
+            for(int j=0; j<mundo.height; j++)
+            {
+                Random r = new Random();
+                double randomValue = 10 * r.nextDouble();
+                utilities[i][j] = randomValue;
+            }
+        }
     }
 
     void doStuff() {
         int action;
 
-        //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
         // initialize state transition probabilities matrices
         stateTransitionWest = initStateTransitionMatrix(WEST);
@@ -671,6 +808,13 @@ public class theRobot extends JFrame {
         stateTransitionNorth = initStateTransitionMatrix(NORTH);
         stateTransitionSouth = initStateTransitionMatrix(SOUTH);
         stateTransitionStay = initStateTransitionMatrix(STAY);
+
+        // These 4 methods dictate decision policy
+        intitializeRewards();
+        initializeUtilities();
+//        utilities = rewards.clone();
+        valueIteration();  // TODO: function you will write in Part II of the lab
+        initializeBestActionsAndMaxUtilities();
 
         // initialize measurement probability
         initMsmtProbabilityMatrix();
