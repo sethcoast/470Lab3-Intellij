@@ -727,6 +727,10 @@ public class theRobot extends JFrame {
     // This is the function you'd need to write to make the robot move using your AI;
     // You do NOT need to write this function for this lab; it can remain as is
     int automaticAction() {
+
+        //Algorithm 1
+
+        /*
         // loop over all states, finding the state with the maximum (state utility * probability)
         double max_util = Double.NEGATIVE_INFINITY;
         int best_action = STAY;
@@ -743,6 +747,33 @@ public class theRobot extends JFrame {
         }
 
         return best_action;  // default action for now
+        */
+
+        //Algorithm 2
+        //Find max prob
+        double max_prob = 0;
+        int mp_x = 0;
+        int mp_y = 0;
+        int best_action = NORTH;
+        for (int y = 0; y < mundo.height; y++)
+        {
+            for (int x = 0; x < mundo.width; x++)
+            {
+                double prob = probs[x][y];
+                if(prob > max_prob)
+                {
+                    max_prob = prob;
+                    mp_x = x;
+                    mp_y = y;
+                }
+            }
+        }
+        if(isValidState(mp_x, mp_y))
+        {
+            best_action = best_actions[mp_x][mp_y];
+        }
+
+        return best_action;
     }
 
     private void initializeBestActionsAndMaxUtilities() {
